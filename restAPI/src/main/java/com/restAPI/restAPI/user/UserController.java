@@ -1,5 +1,9 @@
 package com.restAPI.restAPI.user;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import javax.validation.Valid;
 
 import org.springframework.http.HttpStatus;
@@ -21,6 +25,8 @@ public class UserController {
 
 	User users= new User();
 	
+	Map<String,User> user;
+	
 	@GetMapping
 	public String getUsers(@RequestParam(value="page", defaultValue="1") int page,
 			@RequestParam(value="limit", defaultValue="10") int limit, 
@@ -33,11 +39,13 @@ public class UserController {
 					MediaType.APPLICATION_JSON_VALUE})
 	public ResponseEntity<User> getUser(@PathVariable String userID) {
 		
-		users.setName("Fatma");
-		users.setLastname("Karakaya");
-		users.setEmail("exc@xxx.com");
-		users.setPassword("123");
-		return new ResponseEntity<User>(users , HttpStatus.OK);
+		if(user.containsKey(userID)) {
+			return new ResponseEntity<>(user.get(userID), HttpStatus.OK);
+		}
+		else {
+			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+		}
+		
 	}
 	
 	@PostMapping(consumes = {MediaType.APPLICATION_XML_VALUE, 
@@ -50,17 +58,39 @@ public class UserController {
 		users.setEmail(userDetails.getEmail());
 		users.setPassword(userDetails.getPassword());
 		
+		String userID=UUID.randomUUID().toString();
+		users.setUserID(userID);
+		
+		if(user==null) {
+			user= new HashMap<>();
+			user.put(userID,users);
+		}
 		return new ResponseEntity<User>(users , HttpStatus.OK);
 	}
 	
 	
-	@PutMapping
-	public String updateUser() {
-		return "update user";
+	@PutMapping(path = "{userID}" ,
+			consumes = {MediaType.APPLICATION_XML_VALUE, 
+			MediaType.APPLICATION_JSON_VALUE}, 
+	produces = {MediaType.APPLICATION_XML_VALUE, 
+			MediaType.APPLICATION_JSON_VALUE})
+	public User updateUser(@PathVariable String userID, @Valid @RequestBody UpdateUserDetails userDetails) {
+		
+		User storeUser = user.get(userID);
+		storeUser.setName(userDetails.getName());
+		storeUser.setLastname(userDetails.getLastname());
+		
+		user.put(userID, storeUser);
+		
+		return storeUser;
+		
 	}
 	
-	@DeleteMapping
-	public String deleteUser() {
-		return "delete users";
+	@DeleteMapping (path= "/{id}")
+	public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+		
+		user.remove(id);
+		return ResponseEntity.noContent().build();
+		
 	}
 }
